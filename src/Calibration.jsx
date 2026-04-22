@@ -134,15 +134,17 @@ const Calibration = ({ isConnected, connectSerial, raw_A, raw_B, onComplete }) =
         setTimeLeft(5);
       } else {
         // Finalización
-        setIsCalibrating(false);
-        setPhase('IDLE');
+     setIsCalibrating(false);
+  setPhase('IDLE');
 
-        // Protegemos contra valores en 0 (vital para que funcione la gravedad en el juego)
-        const finalMaxA = tempMax.a > 0.02 ? tempMax.a : 0.5;
-        const finalMaxB = tempMax.b > 0.02 ? tempMax.b : 0.5;
-
-        onComplete({ maxA: finalMaxA, maxB: finalMaxB }, activeMode);
-        setTimeout(() => navigate('/game'), 800);
+  // Aquí es donde aplicamos la lógica de seguridad para el motor del juego:
+  // Si no hubo fuerza (tempMax < 0.02), enviamos 0.01 para evitar errores de división,
+  // pero la pantalla ya mostró que el máximo real fue bajo.
+  const finalMaxA = tempMax.a > 0.02 ? tempMax.a : 0.01;
+  const finalMaxB = tempMax.b > 0.02 ? tempMax.b : 0.01;
+  
+  onComplete({ maxA: finalMaxA, maxB: finalMaxB }, activeMode);
+  setTimeout(() => navigate('/game'), 800);
       }
     }
   }, [isCalibrating, timeLeft, phase, activeMode]); 
@@ -153,7 +155,7 @@ const Calibration = ({ isConnected, connectSerial, raw_A, raw_B, onComplete }) =
   
   // IMPORTANTE: Inicializar con un valor pequeño (0.1) en lugar de 0 
   // para evitar divisiones por cero en el juego si el modo es simple.
-  setTempMax({ a: 0.1, b: 0.1 }); 
+  setTempMax({ a: 0, b: 0 }); 
   
   setIsCalibrating(true);
   setTimeLeft(5);

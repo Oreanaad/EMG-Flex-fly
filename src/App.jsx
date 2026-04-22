@@ -8,7 +8,7 @@ import Registro from './pages/Registro';
 import VerifySuccess from './VerifySuccess';
 import DoctorDashboard from './DoctorDashboard';
 import Calibration from './Calibration';
-import ChickenGame from './ChickenGame';
+import ChickenGame from './Components/ChickenGame/ChickenGame';
 
 const App = () => {
   const { rawValues, isConnected, connectSerial } = useWebSerial();

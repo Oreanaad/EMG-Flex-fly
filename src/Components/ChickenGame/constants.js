@@ -1,0 +1,16 @@
+export const GAME_CONFIG = {
+  CANVAS_WIDTH: 800,
+  CANVAS_HEIGHT: 550,
+  GRAVITY_FORCE: 3.5,
+  SPEED_MOVE: 18.0,
+  ACTIVATION_THRESHOLD: 0.15,
+  INITIAL_LIVES: 3
+};
+
+export const COLORS = {
+  SKY: '#87CEEB',
+  GRASS: '#228B22',
+  WORM: '#FFB6C1',
+  ROCK: '#505050',
+  CHICKEN_BODY: 'yellow'
+};
