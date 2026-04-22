@@ -5,7 +5,11 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+  "dev:front": "vite",
+  "dev:back": "cd backk && npm run dev",
+  "dev": "concurrently \"npm run dev:front\" \"npm run dev:back\""
+
   },
   "keywords": [],
   "author": "",

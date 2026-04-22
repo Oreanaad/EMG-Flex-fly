@@ -14,8 +14,11 @@ const Registro = () => {
   const [username, setUsername] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  // Primero, crea un estado para saber si fue exitoso o no
+const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSubmit = async (e) => {
+
+const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
     setLoading(true);
@@ -30,12 +33,25 @@ const Registro = () => {
     setLoading(false);
 
     if (result.success) {
+      // 1. Establecemos el mensaje de éxito
+          setIsSuccess(true);
       setMessage(result.message);
+    // <--- Guardamos que fue un éxito
+
+      // 2. Limpiamos los campos del formulario
       setUsername('');
       setEmail('');
       setPassword('');
       setConfirmPassword('');
+
+      // 3. Temporizador para que el mensaje desaparezca en 5 segundos
+      setTimeout(() => {
+        setMessage('');
+      }, 5000);
+
     } else {
+      // Si falla, el mensaje se queda ahí para que el usuario lo lea
+        setIsSuccess(false);
       setMessage(result.message);
     }
   };
@@ -112,14 +128,14 @@ const Registro = () => {
               </button>
 
             
-                              {message && (
-              <p className={`form-message ${message.includes('User created') || message.includes('éxito') ? 'success' : 'error'}`}>
-                {message}
-              </p>
-            )}
+
                           
              
-
+{message && (
+  <p className={`form-message ${isSuccess ? 'success' : 'error'}`}>
+    {message}
+  </p>
+)}
               <div className="form-links">
                 <p>
                   <span 

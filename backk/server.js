@@ -9,14 +9,24 @@ import crypto from 'crypto'; // Viene con Node
 import nodemailer from 'nodemailer';
 
 const { Pool } = pkg;
+const PORT = process.env.PORT || 5000; // Usa el del .env o 5000 por defecto
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173'
+}));
 app.use(express.json({ limit: '50mb' }));
+// Crea esta variable al inicio de tu server.js
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://tu-app-en-render.onrender.com' 
+  : `http://localhost:${PORT}`;
+
+// Y dentro de la ruta de registro, cambia la URL:
 
 const pool = new Pool({
   user: process.env.USER_POSTGRES,
@@ -71,7 +81,7 @@ app.post('/api/auth/register', async (req, res) => {
     );
 
     // 4. Enviar el correo bonito
-const url = `http://localhost:3001/api/auth/verify/${verificationToken}`;
+const url = `${API_BASE_URL}/api/auth/verify/${verificationToken}`;
     // En server.js
 
     
@@ -299,5 +309,4 @@ app.post('/api/save-session', async (req, res) => {
   }
 });
 
-const PORT = 3001;
-app.listen(PORT, () => console.log(`🚀 Servidor Kawatek (Full) en puerto ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Servidor Kawatek activo en puerto ${PORT}`));

@@ -45,7 +45,8 @@ const ChickenGame = ({ eff_A, eff_B, gameMode, patientId }) => {
   const [startTime] = useState(Date.now());
   const effARef = useRef(0);
   const effBRef = useRef(0);
-  const scoreRef = useRef(0);
+  const scoreRef = useRef(0); 
+  const livesRef = useRef(3);
   const gameState = useRef({
     chickenX: 400,
     worms: [],
@@ -58,12 +59,19 @@ const ChickenGame = ({ eff_A, eff_B, gameMode, patientId }) => {
   const rocksHit = useRef(0);
   const accumulator = useRef({ a: 0, b: 0, count: 0 });
   const lastSaveTime = useRef(Date.now());
-  const initialBaseline = useRef(null);
+  const initialBaseline = useRef({ a: null, b: null }); // Ahora es un objeto
 
   useEffect(() => {
     effARef.current = eff_A;
     effBRef.current = eff_B;
   }, [eff_A, eff_B]);
+  // Sincroniza el estado de React con la referencia que usa el motor del juego
+useEffect(() => {
+  scoreRef.current = score;
+}, [score]);
+useEffect(() => {
+  livesRef.current = lives;
+}, []);
   // --- EFECTO DE GUARDADO ---
   useEffect(() => {
     // Verificamos que el juego haya terminado, que existan datos Y que tengamos un ID de paciente
@@ -115,30 +123,52 @@ const ChickenGame = ({ eff_A, eff_B, gameMode, patientId }) => {
       const state = gameState.current;
       state.frame++;
 
-      accumulator.current.a += eff_A;
-      accumulator.current.b += eff_B;
-      accumulator.current.count++;
+const cleanA = effARef.current > 0.05 ? effARef.current : 0;
+  const cleanB = effBRef.current > 0.60 ? (effBRef.current - 0.58) : 0; 
+
+  accumulator.current.a += cleanA;
+  accumulator.current.b += cleanB;
+  accumulator.current.count++;
 
       const now = Date.now();
-      if (now - lastSaveTime.current >= 1000) {
-        const avgA = accumulator.current.a / accumulator.current.count;
-        const avgB = accumulator.current.b / accumulator.current.count;
-        const currentAvg = Math.max(avgA, avgB);
+if (now - lastSaveTime.current >= 1000) {
+  const avgA = accumulator.current.a / accumulator.current.count;
+  const avgB = accumulator.current.b / accumulator.current.count;
 
-        if (initialBaseline.current === null && sessionHistory.current.length === 2) {
-          initialBaseline.current = currentAvg;
-        }
+  // 1. CALIBRACIÓN DINÁMICA: Guardamos el máximo esfuerzo visto hasta ahora
+  // Esto permite que si tu máximo es 0.30, la fatiga se base en ese 0.30
+  if (initialBaseline.current.a === null || avgA > initialBaseline.current.a) {
+    initialBaseline.current.a = Math.max(avgA, 0.1); // No dejamos que sea 0
+  }
+  if (initialBaseline.current.b === null || avgB > initialBaseline.current.b) {
+    initialBaseline.current.b = Math.max(avgB, 0.1);
+  }
 
-        state.showFatigue = (currentAvg > 0.85 || (initialBaseline.current > 0.05 && currentAvg > (initialBaseline.current * 1.2)));
+  // 2. DETECCIÓN DE FATIGA MEJORADA
+  // Se fatiga si:
+  // - Está en el 90% de SU PROPIO máximo (ej: 0.27 si su máx es 0.30)
+  // - O si supera un umbral crítico de seguridad (0.95)
+  const fatigueA = (avgA >= initialBaseline.current.a * 0.9) || avgA > 0.95;
+  const fatigueB = (avgB >= initialBaseline.current.b * 0.9) || avgB > 0.95;
 
-        sessionHistory.current.push({
-          t: new Date(now).toISOString(),
-          a: parseFloat(avgA.toFixed(4)),
-          b: parseFloat(avgB.toFixed(4))
-        });
-        accumulator.current = { a: 0, b: 0, count: 0 };
-        lastSaveTime.current = now;
-      }
+  state.showFatigue = fatigueA || fatigueB;
+  state.fatiguedChannel = fatigueA ? 'A' : (fatigueB ? 'B' : null);
+
+  // LOGS para que veas la magia
+  console.log(`--- CANAL A --- Máx detectado: ${initialBaseline.current.a.toFixed(2)} | Actual: ${avgA.toFixed(2)} | % de fatiga: ${((avgA/initialBaseline.current.a)*100).toFixed(0)}%`);
+  console.log(`--- CANAL B --- Máx detectado: ${initialBaseline.current.b.toFixed(2)} | Actual: ${avgB.toFixed(2)} | % de fatiga: ${((avgB/initialBaseline.current.b)*100).toFixed(0)}%`);
+
+  // ... (resto del push y reset)
+
+
+  sessionHistory.current.push({
+    t: new Date(now).toISOString(),
+    a: parseFloat(avgA.toFixed(4)),
+    b: parseFloat(avgB.toFixed(4))
+  });
+  accumulator.current = { a: 0, b: 0, count: 0 };
+  lastSaveTime.current = now;
+}
 // --- MOTOR DE FÍSICA SEGÚN EL MODO SELECCIONADO ---
       const SPEED_MOVE = 18.0;   // Qué tan rápido reacciona al músculo
       const GRAVITY_FORCE = 3.5; // Fuerza constante de la gravedad
@@ -173,15 +203,19 @@ const ChickenGame = ({ eff_A, eff_B, gameMode, patientId }) => {
       if (state.chickenX < 0) state.chickenX = 0;
       if (state.chickenX > 740) state.chickenX = 740;
 
-      const level = Math.floor(score / 10);
-      const currentSpeed = 3 + (level * 1.2);
+      // Dentro de la función update:
+      const currentScore = scoreRef.current; // Asegúrate de actualizar scoreRef cuando sumas puntos
+      const level = Math.floor(currentScore / 10);
+      const currentSpeed = 2 + (level * 1.2);
+            
       
       if (state.worms.length < (3 + level) && Math.random() < 0.02) {
         state.worms.push({ x: Math.random() * (canvas.width - 40), y: -20, offset: Math.random() * 10 });
       }
-      if (score >= 25 && state.rocks.length < (2 + level) && Math.random() < 0.005) {
-        state.rocks.push({ x: Math.random() * (canvas.width - 40), y: -20 });
-      }
+     // Cambia el 0.005 por 0.003 para que salgan con menos frecuencia
+if (scoreRef.current >= 25 && state.rocks.length < (1 + Math.floor(level/2)) && Math.random() < 0.003) {
+  state.rocks.push({ x: Math.random() * (canvas.width - 40), y: -20 });
+}
 
       const chickenRect = { x: state.chickenX, y: 440, w: 60, h: 50 };
 
@@ -193,16 +227,24 @@ const ChickenGame = ({ eff_A, eff_B, gameMode, patientId }) => {
         }
       });
 
-      state.rocks.forEach((r, i) => {
-        r.y += currentSpeed + 1.5;
-        if (checkCollision(chickenRect, { x: r.x - 15, y: r.y - 15, w: 30, h: 30 })) {
-          rocksHit.current += 1;
-          setLives(l => {
-            if (l <= 1) setGameOver(true);
-            return l - 1;
-          });
-          state.rocks.splice(i, 1);
-        }
+     state.rocks.forEach((r, i) => {
+  // Las rocas caen solo un poco más rápido que los gusanos, no el doble
+  r.y += currentSpeed + 0.8; 
+
+  if (checkCollision(chickenRect, { x: r.x - 15, y: r.y - 15, w: 30, h: 30 })) {
+    rocksHit.current += 1;
+    
+    // IMPORTANTE: Usamos la referencia para que el motor del juego 
+    // sepa instantáneamente cuántas vidas quedan
+    livesRef.current -= 1; 
+    setLives(livesRef.current); // Actualizamos el UI
+
+    if (livesRef.current <= 0) {
+      setGameOver(true);
+    }
+    
+    state.rocks.splice(i, 1); // Eliminamos la roca para que no reste vidas múltiples veces
+  }
       });
 
       state.worms = state.worms.filter(w => w.y < canvas.height);
@@ -242,7 +284,7 @@ const ChickenGame = ({ eff_A, eff_B, gameMode, patientId }) => {
       ctx.fillStyle = '#FF8000'; ctx.beginPath();
       ctx.moveTo(x + 55, y + 20); ctx.lineTo(x + 65, y + 25); ctx.lineTo(x + 55, y + 30); ctx.fill();
       
-      const wingFlap = Math.sin(state.frame * 0.2) * (10 + eff_A * 20);
+      const wingFlap = Math.sin(state.frame * 0.2) * (10 + effARef.current * 20); // USAR REF
       ctx.fillStyle = '#FDE047';
       ctx.beginPath();
       ctx.ellipse(x + 20, y + 25, 15, 5 + Math.abs(wingFlap)/4, wingFlap * Math.PI / 180, 0, Math.PI * 2);
@@ -255,23 +297,26 @@ const ChickenGame = ({ eff_A, eff_B, gameMode, patientId }) => {
 
       ctx.fillStyle = 'white'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'left';
       ctx.fillText('❤️ '.repeat(lives), 35, 52); 
-      ctx.textAlign = 'right'; ctx.fillText(`🪱 ${score}`, canvas.width - 55, 52); 
+      ctx.textAlign = 'right'; 
+      ctx.fillText(`🪱 ${scoreRef.current}`, canvas.width - 55, 52); 
 
       if (state.showFatigue) {
         const pulse = Math.abs(Math.sin(state.frame * 0.1));
         ctx.fillStyle = `rgba(220, 38, 38, ${0.7 + pulse * 0.3})`;
         const msgWidth = 360;
+        const muscleName = state.fatiguedChannel === 'A' ? 'FLEXOR (Canal A)' : 'EXTENSOR (Canal B)';
         const msgX = (canvas.width - msgWidth) / 2;
         ctx.beginPath(); ctx.roundRect(msgX, 100, msgWidth, 75, 20); ctx.fill();
         ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.font = 'bold 22px Arial';
         ctx.fillText('⚠️ ESFUERZO ELEVADO', canvas.width / 2, 135);
-        ctx.font = '14px Arial'; ctx.fillText('EL MÚSCULO ESTÁ MUY TENSO. RELAJA.', canvas.width / 2, 160);
+       ctx.font = '14px Arial'; 
+       ctx.fillText(`RELAJA EL ${muscleName}`, canvas.width / 2, 160);
       }
     };
     
     update();
     return () => cancelAnimationFrame(animationId);
-  }, [gameOver, eff_A, eff_B, gameMode, score, lives]);
+  }, [gameOver, gameMode]);
 
   return (
     <div className="game-wrapper">
