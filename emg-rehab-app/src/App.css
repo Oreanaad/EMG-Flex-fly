@@ -181,4 +181,23 @@
     right: 0;
     border-right-color: var(--border);
   }
+
+  @keyframes wing {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-25deg); }
+}
+
+.animate-wing {
+  animation: wing 1.5s ease-in-out infinite;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* Si usas el App.js que vimos antes, quita el bg-slate-950 del div padre 
+   para que no "ensucie" los bordes del login */
 }

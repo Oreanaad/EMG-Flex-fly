@@ -1,0 +1,68 @@
+/* ChickenGame.css */
+
+/* Contenedor principal con fondo degradado suave */
+.relative.flex.flex-col {
+    background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+    overflow: hidden;
+}
+
+/* Estilos para el Canvas */
+canvas {
+    image-rendering: pixelated; /* Mantiene los bordes nítidos para juegos */
+    image-rendering: crisp-edges;
+    cursor: none; /* Oculta el cursor para mayor inmersión */
+}
+
+/* Animación de pulso para la alerta de fatiga */
+@keyframes warningPulse {
+    0% { transform: scale(1); opacity: 0.9; }
+    50% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.9; }
+}
+
+/* El mensaje de Game Over */
+.absolute.inset-0 {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; backdrop-filter: blur(0px); }
+    to { opacity: 1; backdrop-filter: blur(12px); }
+}
+
+/* Estilo para los botones */
+button {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+button:hover {
+    box-shadow: 0 0 20px rgba(250, 204, 21, 0.6); /* Brillo amarillo */
+}
+
+/* Mensajes de feedback (opcional por si usas clases dinámicas) */
+.form-message {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+}
+
+.form-message.success {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.form-message.error {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Estilo para que el canvas se vea bien en pantallas pequeñas */
+@media (max-width: 850px) {
+    canvas {
+        width: 100%;
+        height: auto;
+    }
+}
